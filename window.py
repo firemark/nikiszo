@@ -10,7 +10,7 @@ H = HOUSE_HEIGHT * 0.3;
         
 class Window(WallObj):
     
-    def __init__(self):
+    def __init__(self, blocks):
         self.Z = H / 3
         self.A = H / 5
         
@@ -19,10 +19,7 @@ class Window(WallObj):
             self.window_size[0] + 2 * self.A,
             self.window_size[1] + 2 * self.A,
         ]
-        self.blocks = [
-            [0.5, 0.5], 
-            [0.66, 0.33],
-        ]
+        self.blocks = blocks
         self.inner_margin = 0.6
         
     def show_obj(self):
@@ -91,5 +88,8 @@ class Window(WallObj):
 
 
 if __name__ == "__main__":
-    obj = Window()
-    obj.obj().show()
+    obj = Window([
+        [0.5, 0.5], 
+        [0.66, 0.33],
+    ])
+    obj.show_obj().show()
