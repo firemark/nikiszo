@@ -1,133 +1,95 @@
-#include <consts.scad>
+from openscad import square, union
+from wall_obj import WallObj, _inner_generator
 
 HEIGHT = 2
+CELL_SIZE = 20;
 HOUSE_HEIGHT = CELL_SIZE  * 2/3;
 CELL_SIZE = 20;
 H = HOUSE_HEIGHT * 0.3;
-
-
-class WallObj:
+        
+        
+class Window(WallObj):
     
-    def obj(self):
-        pass
+    def __init__(self):
+        self.Z = H / 3
+        self.A = H / 5
         
-    def hole(self):
-        pass
+        self.window_size = [H, H * 1.61]
+        self.window_size_margin = [
+            self.window_size[0] + 2 * self.A,
+            self.window_size[1] + 2 * self.A,
+        ]
+        self.blocks = [
+            [0.5, 0.5], 
+            [0.66, 0.33],
+        ]
+        self.inner_margin = 0.6
         
-        
-class Window:
-    
-    def obj(self):
-        pass
-        
-    def hole(self):
+    def show_obj(self):
+        return (
+            self._window()
+            .translate([
+                -self.window_size[0] / 2, 
+                0, 
+                -self.window_size[1] / 2,
+            ])
+        )
+            
+    def show_hole(self):
         return (
             square([H, 1.61 * H])
             .linear_extrude(2 * HEIGHT, center=True)
             .rotate([90, 0, 0])
-            translate([-H/2, 0, -H * 1.61/2])
+            .translate([-H/2, 0, -H * 1.61/2])
         )
-
-
-def _window_inner(size, blocks, margin):
-    width, height = size
-    block_size = [
-        s - margin * (len(l) + 1)
-        for s, l in zip(size, blocks)
-    ]
-    cell_size = [
-        [s * b for b in l]
-        for s, l in zip(block_size, blocks)
-    ]
-    shifts = [
-        list(accumulate(
-            [margin] + [s + margin for s in c[1:]]
-        ))
-        for c in cell_size
-    ]
-    holes = [
-        ...
-    ]
-
-module _window_inner(size, blocks, margin) {
-    width = size[0];
-    height = size[1];
-    c = len(blocks[0]);
-    r = len(blocks[1]);
-    block_size = [
-        (width - margin * (c + 1)),
-        (height - margin * (r + 1)),
-    ];
-    
-    difference(){
-        square(size);
         
-        x_size = [
-            for (x = [0 : c - 1])
-            block_size[0] * blocks[0][x]
-        ];
-            
-        y_size = [
-            for (y = [0 : r - 1])
-            block_size[1] * blocks[1][y]
-        ];
+    def _window(self):
+        A = self.A
         
-        xxx = accumulator([
-            margin,
-            for (x = [1 : c - 1])
-            x_size[x-1] + margin,
-        ]);
-            
-        yyy = accumulator([
-            margin,
-            for (y = [1 : r - 1])
-            y_size[y-1] + margin,
-        ]);
-            
-        for (x = [0 : c - 1]) {
-            xx = block_size[0] * blocks[0][x];
-            for (y = [0 : r - 1]) {
-                yy = block_size[1] * blocks[1][y];
-                translate([xxx[x], yyy[y]])
-                square([x_size[x], y_size[y]]);
-            }
-        }
-    }
-    
-}
-
-
-module _window(blocks) {
-    Z = H / 3;
-    A = H / 5;
-    
-    window_size = [H, H * 1.61];
-    window_size_margin = [window_size[0] + 2*A, window_size[1] + 2*A];
-    
-    rotate([90, 0, 0])
-    linear_extrude(HEIGHT, center=true)
-    _window_inner(window_size, blocks, 0.6);
-    
-    rotate([90, 0, 0])
-    translate([-A, -A])
-    linear_extrude(HEIGHT)
-    difference(){
-        square(window_size_margin);
+        inner = (
+            self._window_inner()
+            .linear_extrude(HEIGHT, center=True)
+            .rotate([90, 0, 0])
+        )
         
-        translate([A, A])
-        square(window_size);
-    }
-    
-    rotate([90, 0, 0])
-    translate([-A, -A])
-    linear_extrude(HEIGHT * 4/3)
-    square([window_size_margin[0], A]);    
-}
+        frame = (
+            square(self.window_size_margin)
+            .difference([
+                square(self.window_size)
+                .translate([A, A]),
+            ])
+            .linear_extrude(HEIGHT)
+            .translate([-A, -A])
+            .rotate([90, 0, 0])
+        )
+        
+        ledge = (
+            square([self.window_size_margin[0], A])
+            .linear_extrude(HEIGHT * 4/3)
+            .translate([-A, -A])
+            .rotate([90, 0, 0])
+        )
+        
+        return union([
+            inner,
+            frame,
+            ledge,
+        ])
+
+    def _window_inner(self):
+        gen = _inner_generator(
+            self.window_size,
+            self.blocks, 
+            self.inner_margin,
+        )
+        holes = [
+            square(hole_size).translate(pos)
+            for pos, hole_size in gen
+        ]
+        
+        return square(self.window_size).difference(holes)
 
 
-module window() {
-    translate([-H/2, 0, -H * 1.61/2])
-    _window([[0.5, 0.5], [0.66, 0.33]]);
-}
-
-window();
+if __name__ == "__main__":
+    obj = Window()
+    obj.obj().show()
